@@ -6,6 +6,17 @@ export interface ApiEnvelope<T> {
   requestId: string
 }
 
+export interface AuthUser {
+  userId: string
+  username: string
+  role: 'admin' | 'teacher' | 'student' | string
+}
+
+export interface AuthData {
+  user: AuthUser
+  expiresAt: string
+}
+
 export interface HealthData {
   service: string
   api: string
@@ -21,7 +32,7 @@ export interface HealthData {
   checkedAt: string
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\\/$/, '')
 
 export async function apiRequest<T>(
   action: string,
@@ -29,17 +40,33 @@ export async function apiRequest<T>(
 ): Promise<ApiEnvelope<T>> {
   const response = await fetch(API_BASE_URL, {
     method: 'POST',
+    credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action, data }),
   })
 
-  const payload = (await response.json()) as ApiEnvelope<T>
-  if (!response.ok && payload.success) {
-    throw new Error('Respons API tidak konsisten.')
+  let payload: ApiEnvelope<T>
+  try {
+    payload = (await response.json()) as ApiEnvelope<T>
+  } catch {
+    throw new Error(`Respons API tidak valid (HTTP ${response.status}).`)
   }
+  if (!response.ok && payload.success) throw new Error('Respons API tidak konsisten.')
   return payload
 }
 
 export async function checkBackendHealth(): Promise<ApiEnvelope<HealthData>> {
   return apiRequest<HealthData>('health.check')
+}
+
+export async function authLogin(username: string, password: string) {
+  return apiRequest<AuthData>('auth.login', { username, password })
+}
+
+export async function authMe() {
+  return apiRequest<AuthData>('auth.me')
+}
+
+export async function authLogout() {
+  return apiRequest<{ loggedOut: boolean }>('auth.logout')
 }
