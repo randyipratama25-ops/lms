@@ -1,6 +1,6 @@
 /**
- * Router action API LMS.
- * Semua action selain health.check, auth.login dan auth.logout memerlukan sesi aktif.
+ * Router action API.
+ * Login password verification is handled by Vercel native crypto through internal bridge actions.
  */
 function routeAction_(action, data, requestId, sessionToken, clientIp) {
   if (!isValidActionName_(action)) {
@@ -8,7 +8,12 @@ function routeAction_(action, data, requestId, sessionToken, clientIp) {
   }
 
   if (action === 'health.check') return healthCheck_(requestId);
-  if (action === 'auth.login') return authLogin_(data, requestId, clientIp);
+  if (action === 'auth.credentials.lookup') return authCredentialsLookup_(data, requestId, clientIp);
+  if (action === 'auth.login.failed') return authLoginFailed_(data, requestId, clientIp);
+  if (action === 'auth.session.issue') return authSessionIssue_(data, requestId, clientIp);
+  if (action === 'auth.login') {
+    return errorEnvelope_('AUTH_PROXY_REQUIRED', 'Login harus melalui proxy Vercel.', requestId);
+  }
   if (action === 'auth.logout') return authLogout_(sessionToken, requestId);
   if (action === 'auth.me') return authMe_(sessionToken, requestId);
 
@@ -17,8 +22,6 @@ function routeAction_(action, data, requestId, sessionToken, clientIp) {
     return errorEnvelope_('UNAUTHENTICATED', 'Sesi tidak valid atau telah berakhir. Silakan login kembali.', requestId);
   }
 
-  // Modul domain berikutnya harus menerima principal dan menegakkan role serta ownership
-  // di backend. Jangan mengandalkan route guard frontend sebagai kontrol keamanan.
   return errorEnvelope_(
     'NOT_IMPLEMENTED',
     'Action "' + action + '" belum tersedia. Sesi pengguna sudah tervalidasi.',
