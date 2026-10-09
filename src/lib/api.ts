@@ -32,7 +32,12 @@ export interface HealthData {
   checkedAt: string
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
+// Authenticated requests must use the same-origin Vercel proxy. VITE_GAS_URL is a public
+// Apps Script URL and must not be called directly because it would bypass server-side secrets.
+const configuredApiBase = (import.meta.env.VITE_API_BASE_URL || '/api').trim()
+const API_BASE_URL = configuredApiBase.startsWith('/') && !configuredApiBase.startsWith('//')
+  ? configuredApiBase.replace(/\/$/, '')
+  : '/api'
 
 export async function apiRequest<T>(
   action: string,
