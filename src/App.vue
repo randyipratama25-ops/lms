@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useAuth } from './lib/auth'
 import { useRoute, useRouter } from 'vue-router'
 import {
   GraduationCap, LayoutDashboard, CalendarCheck, ClipboardList, BookOpenCheck,
@@ -10,6 +11,11 @@ import {
 const route = useRoute()
 const router = useRouter()
 const sidebarOpen = ref(false)
+const { user, logout } = useAuth()
+async function signOut() {
+  await logout()
+  await router.replace('/login')
+}
 const pageTitle = computed(() => String(route.meta.title || 'Dashboard'))
 
 const mainNav = [
@@ -25,7 +31,8 @@ const dataNav = [
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#f7f8fc] text-slate-800">
+  <RouterView v-if="route.name === 'login'" />
+  <div v-else class="min-h-screen bg-[#f7f8fc] text-slate-800">
     <div v-if="sidebarOpen" class="fixed inset-0 z-40 bg-slate-950/35 lg:hidden" @click="sidebarOpen = false"></div>
     <aside :class="['sidebar fixed inset-y-0 left-0 z-50 flex w-[264px] flex-col border-r border-slate-200/80 bg-white px-4 py-5 transition-transform duration-200 lg:translate-x-0', sidebarOpen ? 'translate-x-0' : '-translate-x-full']">
       <div class="mb-9 flex items-center justify-between px-2">
@@ -67,9 +74,9 @@ const dataNav = [
         </div>
         <RouterLink to="/pengaturan" class="nav-link" :class="{ 'nav-link-active': route.path === '/pengaturan' }" @click="sidebarOpen = false"><Settings2 :size="18" /><span>Pengaturan</span></RouterLink>
         <div class="mt-4 flex items-center gap-3 border-t border-slate-100 px-2 pt-4">
-          <div class="flex h-9 w-9 items-center justify-center rounded-full bg-violet-100 text-xs font-bold text-violet-700">AD</div>
-          <div class="min-w-0 flex-1"><p class="truncate text-xs font-bold text-slate-800">Administrator</p><p class="mt-0.5 text-[11px] text-slate-400">Mode pratinjau</p></div>
-          <LogOut :size="16" class="text-slate-300" />
+          <div class="flex h-9 w-9 items-center justify-center rounded-full bg-violet-100 text-xs font-bold uppercase text-violet-700">{{ (user?.username || 'U').slice(0, 2) }}</div>
+          <div class="min-w-0 flex-1"><p class="truncate text-xs font-bold text-slate-800">{{ user?.username || 'Pengguna' }}</p><p class="mt-0.5 text-[11px] capitalize text-slate-400">{{ user?.role || 'Akun' }}</p></div>
+          <button type="button" class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-rose-600" aria-label="Keluar" title="Keluar" @click="signOut"><LogOut :size="16" /></button>
         </div>
       </div>
     </aside>
