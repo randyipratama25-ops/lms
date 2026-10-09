@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
-import { Construction, ArrowLeft } from 'lucide-vue-next'
+import { Construction, ArrowLeft } from '@lucide/vue'
 
 const route = useRoute()
 const title = computed(() => String(route.meta.title || 'Modul'))
