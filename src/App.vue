@@ -5,7 +5,7 @@ import {
   GraduationCap, LayoutDashboard, CalendarCheck, ClipboardList, BookOpenCheck,
   UsersRound, PanelsTopLeft, Settings2, Bell, Search, Menu, X, ChevronDown,
   CircleHelp, LogOut, Sparkles
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 
 const route = useRoute()
 const router = useRouter()
