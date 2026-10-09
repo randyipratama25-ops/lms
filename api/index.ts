@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 
 const MAX_BODY_BYTES = 250_000
-const ACTION_PATTERN = /^[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*)+$/
+const ACTION_PATTERN = /^[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)+$/
 const SESSION_COOKIE = 'lms_session'
 const SESSION_TTL_SECONDS = 7200
 
