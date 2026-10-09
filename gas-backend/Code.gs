@@ -38,7 +38,9 @@ function doPost(e) {
       ? body.data
       : {};
 
-    return jsonOutput_(routeAction_(action, data, requestId));
+    var sessionToken = typeof body.sessionToken === 'string' ? body.sessionToken : '';
+    var clientIp = typeof body.clientIp === 'string' ? body.clientIp.substring(0, 80) : '';
+    return jsonOutput_(routeAction_(action, data, requestId, sessionToken, clientIp));
   } catch (error) {
     // Jangan kembalikan detail exception kepada pemanggil.
     console.error('LMS API error [' + requestId + ']: ' + error);
