@@ -5,6 +5,9 @@ const ACTION_PATTERN = /^[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)+$/
 const SESSION_COOKIE = 'lms_session'
 const SESSION_TTL_SECONDS = 7200
 
+// Password verification uses PBKDF2 in Apps Script; allow enough time for cold starts and hashing.
+export const config = { maxDuration: 60 }
+
 type ApiPayload = Record<string, unknown> & {
   success?: boolean
   data?: Record<string, unknown>
@@ -138,7 +141,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         clientIp,
       }),
       redirect: 'follow',
-      signal: AbortSignal.timeout(30_000),
+      signal: AbortSignal.timeout(55_000),
     })
     const responseText = await upstream.text()
     let payload: ApiPayload
@@ -175,10 +178,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       : upstreamError?.code === 'UNAUTHORIZED' ? 502 : 400
 
     return sendJson(res, status, { ...payload, requestId })
-  } catch {
+  } catch (error) {
+    const timedOut = error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')
+    // Log only safe diagnostic metadata; never log request bodies, passwords, cookies, or secrets.
+    console.error('LMS upstream request failed', {
+      requestId,
+      action,
+      errorName: error instanceof Error ? error.name : 'UnknownError',
+      timedOut,
+    })
     return sendJson(res, 502, {
-      success: false, message: 'Tidak dapat menghubungi backend Google Apps Script.',
-      error: { code: 'UPSTREAM_UNAVAILABLE', message: 'Periksa URL deployment dan izin Web App.' }, requestId,
+      success: false,
+      message: timedOut ? 'Backend Google Apps Script terlalu lama merespons.' : 'Tidak dapat menghubungi backend Google Apps Script.',
+      error: {
+        code: timedOut ? 'UPSTREAM_TIMEOUT' : 'UPSTREAM_UNAVAILABLE',
+        message: timedOut
+          ? 'Permintaan backend melewati batas waktu. Periksa durasi eksekusi Apps Script.'
+          : 'Periksa URL deployment dan izin Web App.',
+      },
+      requestId,
     })
   }
 }
