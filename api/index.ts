@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { pbkdf2Sync, timingSafeEqual } from 'node:crypto'
+import { pbkdf2Sync, randomUUID, timingSafeEqual } from 'node:crypto'
 
 const MAX_BODY_BYTES = 250_000
 const ACTION_PATTERN = /^[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)+$/
@@ -60,7 +60,32 @@ function clearSessionCookie(res: VercelResponse) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const requestId = crypto.randomUUID()
+  const requestId = randomUUID()
+  try {
+    return await handleRequest(req, res, requestId)
+  } catch (error) {
+    // Catch unexpected failures and always return JSON for the frontend.
+    console.error('LMS API handler crashed', {
+      requestId,
+      errorName: error instanceof Error ? error.name : 'UnknownError',
+    })
+    if (res.headersSent) {
+      res.end()
+      return
+    }
+    return sendJson(res, 500, {
+      success: false,
+      message: 'Terjadi kesalahan internal pada API LMS.',
+      error: {
+        code: 'INTERNAL_API_ERROR',
+        message: 'API mengalami kesalahan tak terduga. Sampaikan requestId kepada administrator.',
+      },
+      requestId,
+    })
+  }
+}
+
+async function handleRequest(req: VercelRequest, res: VercelResponse, requestId: string) {
 
   if (req.method === 'GET') {
     return sendJson(res, 200, {
