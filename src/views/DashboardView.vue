@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CalendarDays, UsersRound, ClipboardCheck, BookOpen, ArrowUpRight, ArrowRight, Clock3, CircleCheck, CircleAlert, MoreHorizontal } from '@lucide/vue'
+import { CalendarDays, UsersRound, BookOpen, ArrowUpRight, ArrowRight, Clock3, CircleCheck, CircleAlert, MoreHorizontal } from '@lucide/vue'
 
 const stats = [
   { label: 'Total siswa', value: '684', note: '+12 siswa baru', icon: UsersRound, tone: 'bg-indigo-50 text-indigo-600', trend: 'Data contoh' },
