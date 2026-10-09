@@ -386,3 +386,91 @@ function clearLoginUserFailures_(username) {
   cache.remove(loginThrottleKey_('USER_COUNT', username));
   cache.remove(loginThrottleKey_('USER_LOCK', username));
 }
+
+
+/**
+ * Fast login bridge: password PBKDF2 verification is performed by Vercel's native
+ * node:crypto implementation. This endpoint is internal to the Vercel proxy because
+ * every Apps Script POST requires LMS_API_SHARED_SECRET.
+ */
+function authCredentialsLookup_(data, requestId, clientIp) {
+  var username = typeof data.username === 'string' ? data.username.trim().toLowerCase() : '';
+  if (!/^[a-z0-9._-]{3,64}$/.test(username)) {
+    return {
+      success: true,
+      message: 'Pemeriksaan kredensial selesai.',
+      data: { found: false },
+      requestId: requestId
+    };
+  }
+
+  var throttle = getLoginThrottleState_(username, clientIp);
+  if (throttle.locked) {
+    return errorEnvelope_('ACCOUNT_LOCKED', 'Terlalu banyak percobaan login. Coba kembali setelah 15 menit.', requestId);
+  }
+
+  var user = findUserByUsername_(username);
+  if (!user || normalizeStatus_(user.status) !== 'active' ||
+      typeof user.password_hash !== 'string' || !user.password_hash) {
+    return {
+      success: true,
+      message: 'Pemeriksaan kredensial selesai.',
+      data: { found: false },
+      requestId: requestId
+    };
+  }
+
+  return {
+    success: true,
+    message: 'Pemeriksaan kredensial selesai.',
+    data: {
+      found: true,
+      userId: String(user.user_id),
+      username: String(user.username),
+      role: normalizeRole_(user.role),
+      passwordHash: String(user.password_hash)
+    },
+    requestId: requestId
+  };
+}
+
+function authLoginFailed_(data, requestId, clientIp) {
+  var username = typeof data.username === 'string' ? data.username.trim().toLowerCase() : '';
+  if (!/^[a-z0-9._-]{3,64}$/.test(username)) {
+    username = 'invalid-username';
+  }
+
+  var attemptState = recordLoginFailure_(username, clientIp);
+  return {
+    success: true,
+    message: 'Percobaan login dicatat.',
+    data: { locked: Boolean(attemptState.locked) },
+    requestId: requestId
+  };
+}
+
+function authSessionIssue_(data, requestId, clientIp) {
+  var userId = typeof data.userId === 'string' ? data.userId : '';
+  var user = findUserById_(userId);
+  if (!user || normalizeStatus_(user.status) !== 'active') {
+    return errorEnvelope_('INVALID_CREDENTIALS', 'Username atau password tidak valid.', requestId);
+  }
+
+  var username = String(user.username || '').trim().toLowerCase();
+  if (getLoginThrottleState_(username, clientIp).locked) {
+    return errorEnvelope_('ACCOUNT_LOCKED', 'Terlalu banyak percobaan login. Coba kembali setelah 15 menit.', requestId);
+  }
+
+  clearLoginUserFailures_(username);
+  var session = issueSession_(user);
+  return {
+    success: true,
+    message: 'Login berhasil.',
+    data: {
+      user: publicUser_(user),
+      sessionToken: session.token,
+      expiresAt: session.expiresAt
+    },
+    requestId: requestId
+  };
+}
