@@ -5,6 +5,7 @@
 
 var LMS_SCHEMA = [
   { name: 'Users', headers: ['user_id', 'username', 'password_hash', 'role', 'status', 'created_at', 'updated_at'] },
+  { name: 'Sessions', headers: ['token_hash', 'user_id', 'role', 'issued_at', 'expires_at', 'status', 'revoked_at'] },
   { name: 'Students', headers: ['student_id', 'nis', 'nisn', 'name', 'class_id', 'photo_media_id', 'status', 'created_at', 'updated_at'] },
   { name: 'Teachers', headers: ['teacher_id', 'employee_number', 'name', 'email', 'status', 'created_at', 'updated_at'] },
   { name: 'Classes', headers: ['class_id', 'class_name', 'grade_level', 'homeroom_teacher_id', 'academic_year_id', 'status', 'created_at', 'updated_at'] },
